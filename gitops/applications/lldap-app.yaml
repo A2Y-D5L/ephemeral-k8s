@@ -7,8 +7,8 @@ spec:
   project: default
 
   source:
-    repoURL: https://REPLACED_BY_ROOT_APP_SOURCE_REPO
-    targetRevision: HEAD
+    repoURL: https://github.com/a2y-d5l/ephemeral-k8s.git
+    targetRevision: main
     path: gitops/apps/lldap
 
   destination:

@@ -7,11 +7,14 @@ LOG_FILE="${STATE_DIR}/kgateway-portforward.log"
 
 log "Starting kgateway port-forward (background)"
 
-DEPLOY="$(
-  kubectl -n kgateway-system get deploy \
+log "Waiting for kgateway proxy deployment"
+DEPLOY=""
+for i in {1..30}; do
+  DEPLOY="$(kubectl -n kgateway-system get deploy \
     -l gateway.networking.k8s.io/gateway-name=edge \
-    -o jsonpath='{.items[0].metadata.name}'
-)"
+    -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)" && [[ -n "${DEPLOY}" ]] && break
+  sleep 2
+done
 
 if [[ -z "${DEPLOY}" ]]; then
   echo "Could not find kgateway proxy deployment for Gateway 'edge'." >&2

@@ -10,7 +10,7 @@ GIT_REVISION ?= main
 CLUSTER_NAME ?= ephem
 
 # kgateway version (pinned for reproducibility; override if desired)
-KGATEWAY_VERSION ?= v2.1.1
+KGATEWAY_VERSION ?= v2.1.2
 
 # ----------------------
 
