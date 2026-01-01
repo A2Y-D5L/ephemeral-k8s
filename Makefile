@@ -23,10 +23,20 @@ export CLUSTER_NAME
 export KGATEWAY_VERSION
 export GATEWAY_API_VERSION
 
-.PHONY: up down
+.PHONY: up down status logs
 
 up:
 	@./hack/up.sh
 
 down:
 	@./hack/down.sh
+
+status:
+	@echo "==> Argo CD Applications"
+	@kubectl -n argocd get applications.argoproj.io
+	@echo ""
+	@echo "==> Gateway"
+	@kubectl -n kgateway-system get gateway
+
+logs:
+	@kubectl -n argocd logs -l app.kubernetes.io/name=argocd-server --tail=50

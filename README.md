@@ -63,6 +63,18 @@ Tear it all down:
 make down
 ```
 
+Check cluster status:
+
+```bash
+make status
+```
+
+View Argo CD server logs:
+
+```bash
+make logs
+```
+
 ## After `make up`
 
 You should have:
