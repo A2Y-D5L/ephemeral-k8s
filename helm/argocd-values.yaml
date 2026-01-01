@@ -25,7 +25,8 @@ configs:
 
           userSearch:
             baseDN: ou=people,dc=example,dc=com
-            filter: "(uid={0})"
+            # Use the uid attribute to find users. Dex will search for
+            # entries where uid matches the login username.
             username: uid
             idAttr: uid
             emailAttr: mail
@@ -33,7 +34,8 @@ configs:
 
           groupSearch:
             baseDN: ou=groups,dc=example,dc=com
-            filter: "(member={0})"
+            # Search for groups where the user's DN is a member
+            filter: "(member={{.UserDN}})"
             userMatchers:
               - userAttr: DN
                 groupAttr: member
