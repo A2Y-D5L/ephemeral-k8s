@@ -1,5 +1,4 @@
 # ephemeral-k8s
-
 An opinionated, “one command” ephemeral Kubernetes playground for macOS (Docker Desktop) that boots a fresh local cluster and immediately starts syncing a GitOps app tree via Argo CD.
 
 Core goals:
@@ -39,8 +38,11 @@ Prereqs (macOS):
 - Homebrew-installed tools: kind, kubectl, helm, mkcert, yq, jq
 
 Install prereqs:
-    brew install kind kubectl helm mkcert yq jq
-    mkcert -install
+
+```bash
+brew install kind kubectl helm mkcert yq jq
+mkcert -install
+```
 
 Configure the repo URL (required):
 
@@ -49,10 +51,16 @@ Configure the repo URL (required):
   - `GIT_REVISION` (e.g. main)
 
 Bring everything up:
-    make up
+
+```bash
+make up
+```
 
 Tear it all down:
-    make down
+
+```bash
+make down
+```
 
 ## After `make up`
 
@@ -64,7 +72,7 @@ You should have:
   - <https://lldap.localhost:8443>
   - Note: this comes online after Argo CD syncs the child app.
 
-The Argo CD initial admin password is printed at the end of `make up`.
+The Argo CD initial admin password is printed at the end of `make up`.\
 (You can also fetch it with kubectl, but the goal is that you do not need to.)
 
 ## How the GitOps bootstrapping works
@@ -78,32 +86,25 @@ This repo uses an app-of-apps pattern:
 5) The root Application creates/updates all child Applications under `gitops/applications/`.
 6) Each child Application has auto-sync enabled, so workloads deploy without manual sync clicks.
 
-Directory layout:
+**Directory layout:**
 
-- `gitops/root/`
-  - template or rendered manifest for the root Application
-- `gitops/applications/`
-  - one YAML per child Argo CD Application (the “catalog” of apps to deploy)
-- `gitops/apps/<name>/`
-  - the actual Kubernetes manifests (Kustomize bases/overlays are fine)
+- `gitops/root/`: template or rendered manifest for the root Application
+- `gitops/applications/`: one YAML per child Argo CD Application (the “catalog” of apps to deploy)
+- `gitops/apps/<name>/`: the actual Kubernetes manifests (Kustomize bases/overlays are fine)
 
 ## Adding a new app
 
 1) Create the manifests:
-
-- Add a folder: `gitops/apps/<your-app>/`
-- Add your YAMLs and a `kustomization.yaml` if you’re using Kustomize
-
-1) Create a child Application:
-
-- Add `gitops/applications/<your-app>-app.yaml`
-- Point `spec.source.path` to `gitops/apps/<your-app>`
-- Enable:
-  - `spec.syncPolicy.automated.prune: true`
-  - `spec.syncPolicy.automated.selfHeal: true`
-  - `spec.syncOptions: [CreateNamespace=true]` if your app expects a namespace
-
-1) Commit/push. Argo CD will pick it up automatically.
+   - Add a folder: `gitops/apps/<your-app>/`
+   - Add your YAMLs and a `kustomization.yaml` if you're using Kustomize
+2) Create a child Application:
+   - Add `gitops/applications/<your-app>-app.yaml`
+   - Point `spec.source.path` to `gitops/apps/<your-app>`
+   - Enable:
+     - `spec.syncPolicy.automated.prune: true`
+     - `spec.syncPolicy.automated.selfHeal: true`
+     - `spec.syncOptions: [CreateNamespace=true]` if your app expects a namespace
+3) Commit/push. Argo CD will pick it up automatically.
 
 ## Local TLS and hostnames
 
