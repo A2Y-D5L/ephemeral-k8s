@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: lldap
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://REPLACED_BY_ROOT_APP_SOURCE_REPO
+    targetRevision: HEAD
+    path: gitops/apps/lldap
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: lldap
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

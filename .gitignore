@@ -1,0 +1,76 @@
+# Ignore everything at repo root by default
+/*
+
+# Always keep the .gitignore itself
+!.gitignore
+
+# Root files you want tracked
+!Makefile
+!kind.yaml
+!README.md
+!README.*
+!LICENSE
+!LICENSE.*
+!NOTICE
+!NOTICE.*
+
+# Allow key repo directories (and everything under them)
+!hack/
+!hack/**
+
+!helm/
+!helm/**
+
+!manifests/
+!manifests/**
+
+!gitops/
+!gitops/**
+
+!.github/
+!.github/**
+
+# ------------------------------------------------------------------------------
+# Explicitly ignore local-only / sensitive / generated artifacts (even if under
+# whitelisted directories).
+# ------------------------------------------------------------------------------
+
+# Local runtime state / bootstrap outputs
+/.state/
+/.certs/
+
+# Secrets / private keys / cert material (never commit)
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
+**/*.crt
+**/*.cer
+**/*.der
+**/*.jks
+**/*.keystore
+**/*_rsa
+**/*_ed25519
+
+# Env / local config
+**/.env
+**/.env.*
+**/*.env
+**/*.env.*
+
+# Logs, PIDs, temp files
+**/*.log
+**/*.pid
+**/*.tmp
+**/*.swp
+**/*.swo
+
+# macOS / editor noise
+**/.DS_Store
+**/.AppleDouble
+**/.LSOverride
+**/._*
+**/.Spotlight-V100
+**/.Trashes
+**/.idea/
+**/.vscode/

@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lldap
+  namespace: lldap
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lldap
+  template:
+    metadata:
+      labels:
+        app: lldap
+    spec:
+      containers:
+        - name: lldap
+          image: lldap/lldap:stable
+          ports:
+            - name: ldap
+              containerPort: 3890
+            - name: http
+              containerPort: 17170
+          envFrom:
+            - secretRef:
+                name: lldap-secrets
+          env:
+            - name: LLDAP_LDAP_BASE_DN
+              value: "dc=example,dc=com"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          emptyDir: {}

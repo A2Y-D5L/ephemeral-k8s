@@ -1,0 +1,41 @@
+configs:
+  cm:
+    # Required for SSO/Dex callback URLs to be correct.
+    # Must match how users reach Argo CD externally.
+    url: https://argocd.localhost:8443
+
+    # Argo CD bundles Dex; configure Dex connectors here.
+    dex.config: |
+      connectors:
+      - type: ldap
+        id: lldap
+        name: LLDAP
+        config:
+          host: lldap.lldap.svc.cluster.local:3890
+          insecureNoSSL: true
+
+          # For ephemeral/dev only; adjust to your LLDAP directory shape.
+          bindDN: uid=admin,ou=people,dc=example,dc=com
+          bindPW: adminpw
+
+          usernamePrompt: Username
+
+          userSearch:
+            baseDN: ou=people,dc=example,dc=com
+            filter: "(uid={0})"
+            username: uid
+            idAttr: uid
+            emailAttr: mail
+            nameAttr: cn
+
+          groupSearch:
+            baseDN: ou=groups,dc=example,dc=com
+            filter: "(member={0})"
+            userMatchers:
+              - userAttr: DN
+                groupAttr: member
+            nameAttr: cn
+
+  # These become argocd-cmd-params-cm (runtime/flag-like settings).
+  params:
+    server.insecure: "true"

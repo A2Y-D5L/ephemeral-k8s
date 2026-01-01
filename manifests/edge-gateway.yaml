@@ -1,0 +1,19 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: edge
+  namespace: kgateway-system
+spec:
+  gatewayClassName: kgateway
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 8443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: localhost-wildcard
+      allowedRoutes:
+        namespaces:
+          from: All
