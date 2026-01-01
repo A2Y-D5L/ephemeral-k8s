@@ -82,6 +82,28 @@ View Argo CD server logs:
 make logs
 ```
 
+## LLDAP persistence (optional)
+
+By default, LLDAP data is ephemeral and lost on `make down`. To persist LLDAP state (users, groups) across cluster rebuilds:
+
+```bash
+PERSIST_LLDAP=1 make up
+```
+
+Data is stored in `.persist/lldap/` (git-ignored, local-only).
+
+To completely reset and remove persisted data:
+
+```bash
+make clean
+```
+
+**Caveats:**
+
+- Persistence makes the environment partially stateful.
+- The `.persist/` directory is local to your machine and not shared.
+- If you encounter permission errors, ensure `.persist/lldap/` is writable.
+
 ## After `make up`
 
 You should have:

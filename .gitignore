@@ -37,6 +37,9 @@
 /.state/
 /.certs/
 
+# Persistence data (local-only, survives make down)
+/.persist/
+
 # Secrets / private keys / cert material (never commit)
 **/*.key
 **/*.pem

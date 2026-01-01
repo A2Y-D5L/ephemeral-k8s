@@ -9,6 +9,9 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/hack/util.sh"
 : "${GATEWAY_API_VERSION:=v1.4.0}"
 : "${GIT_REPO_URL:=CHANGE_ME}"
 : "${GIT_REVISION:=main}"
+: "${PERSIST_LLDAP:=0}"
+: "${PERSIST_ROOT:=${ROOT}/.persist}"
+: "${PERSIST_DIR:=${PERSIST_ROOT}/lldap}"
 
 require_env GIT_REPO_URL
 require_env GIT_REVISION
@@ -24,10 +27,62 @@ need yq
 log "Verifying Docker Desktop is running"
 docker info >/dev/null
 
+# --- Persistence setup ---
+KIND_CONFIG="${ROOT}/kind.yaml"
+
+if [[ "${PERSIST_LLDAP}" == "1" ]]; then
+  log "Persistence enabled: setting up ${PERSIST_DIR}"
+  mkdir -p "${PERSIST_DIR}"
+  chmod 777 "${PERSIST_DIR}"
+
+  # Generate kind config with extraMounts for all nodes
+  KIND_CONFIG="${STATE_DIR}/kind.yaml"
+  log "Generating kind config with extraMounts"
+  cat > "${KIND_CONFIG}" <<EOF
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraMounts:
+      - hostPath: ${PERSIST_DIR}
+        containerPath: /var/local-path/lldap
+  - role: worker
+    extraMounts:
+      - hostPath: ${PERSIST_DIR}
+        containerPath: /var/local-path/lldap
+  - role: worker
+    extraMounts:
+      - hostPath: ${PERSIST_DIR}
+        containerPath: /var/local-path/lldap
+EOF
+fi
+
 log "Recreating kind cluster: ${CLUSTER_NAME}"
 kind delete cluster --name "${CLUSTER_NAME}" >/dev/null 2>&1 || true
-kind create cluster --name "${CLUSTER_NAME}" --config "${ROOT}/kind.yaml"
+kind create cluster --name "${CLUSTER_NAME}" --config "${KIND_CONFIG}"
 kubectl config use-context "kind-${CLUSTER_NAME}" >/dev/null
+
+# --- Apply PV early if persistence is enabled ---
+if [[ "${PERSIST_LLDAP}" == "1" ]]; then
+  log "Creating PersistentVolume for LLDAP"
+  cat > "${STATE_DIR}/lldap-pv.yaml" <<EOF
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: lldap-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: lldap-hostpath
+  hostPath:
+    path: /var/local-path/lldap
+    type: DirectoryOrCreate
+EOF
+  kubectl apply -f "${STATE_DIR}/lldap-pv.yaml" >/dev/null
+fi
 
 log "Installing Gateway API CRDs (${GATEWAY_API_VERSION} standard)"
 kubectl apply -f "https://github.com/kubernetes-sigs/gateway-api/releases/download/${GATEWAY_API_VERSION}/standard-install.yaml" >/dev/null
@@ -120,6 +175,91 @@ EOF
 
 kubectl apply -f "${ROOT_APP_RENDERED}" >/dev/null
 
+# --- Persistence: wait for LLDAP namespace and apply PVC + patch deployment ---
+if [[ "${PERSIST_LLDAP}" == "1" ]]; then
+  log "Waiting for LLDAP namespace to be created by Argo CD"
+  for _ in {1..60}; do
+    if kubectl get ns lldap >/dev/null 2>&1; then
+      break
+    fi
+    sleep 2
+  done
+
+  if ! kubectl get ns lldap >/dev/null 2>&1; then
+    echo "ERROR: lldap namespace was not created within timeout" >&2
+    exit 1
+  fi
+
+  log "Creating PersistentVolumeClaim for LLDAP"
+  cat > "${STATE_DIR}/lldap-pvc.yaml" <<EOF
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: lldap-pvc
+  namespace: lldap
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: lldap-hostpath
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: lldap-pv
+EOF
+  kubectl apply -f "${STATE_DIR}/lldap-pvc.yaml" >/dev/null
+
+  log "Waiting for LLDAP deployment to be synced by Argo CD"
+  for _ in {1..60}; do
+    if kubectl -n lldap get deploy lldap >/dev/null 2>&1; then
+      break
+    fi
+    sleep 2
+  done
+
+  if ! kubectl -n lldap get deploy lldap >/dev/null 2>&1; then
+    echo "ERROR: lldap deployment was not created within timeout" >&2
+    exit 1
+  fi
+
+  log "Waiting for LLDAP Argo CD Application to exist"
+  for _ in {1..30}; do
+    if kubectl -n argocd get app lldap >/dev/null 2>&1; then
+      break
+    fi
+    sleep 2
+  done
+
+  if ! kubectl -n argocd get app lldap >/dev/null 2>&1; then
+    echo "ERROR: lldap Application was not created within timeout" >&2
+    exit 1
+  fi
+
+  log "Configuring Argo CD to ignore volume differences for LLDAP"
+  # Patch the Argo CD Application to ignore the volume field, preventing selfHeal
+  # from reverting our deployment patch
+  kubectl -n argocd patch app lldap --type=merge -p '{
+    "spec": {
+      "ignoreDifferences": [
+        {
+          "group": "apps",
+          "kind": "Deployment",
+          "name": "lldap",
+          "namespace": "lldap",
+          "jsonPointers": ["/spec/template/spec/volumes"]
+        }
+      ]
+    }
+  }' >/dev/null
+
+  log "Patching LLDAP deployment to use PVC"
+  kubectl -n lldap patch deploy lldap --type=json -p '[
+    {"op": "replace", "path": "/spec/template/spec/volumes/0", "value": {"name": "data", "persistentVolumeClaim": {"claimName": "lldap-pvc"}}}
+  ]' >/dev/null
+
+  log "Waiting for LLDAP pod to be ready with persistent storage"
+  kubectl -n lldap rollout status deploy/lldap --timeout=2m >/dev/null
+fi
+
 log "Starting kgateway port-forward"
 "${ROOT}/hack/portforward-start.sh" >/dev/null
 
@@ -128,11 +268,20 @@ PASS="$(
     -o jsonpath='{.data.password}' 2>/dev/null | base64 -d || true
 )"
 
+PERSIST_MSG=""
+if [[ "${PERSIST_LLDAP}" == "1" ]]; then
+  PERSIST_MSG="
+LLDAP persistence: ENABLED
+  Data stored in: ${PERSIST_DIR}
+  To reset: make clean
+"
+fi
+
 cat <<EOF
 
 ✅ Cluster is up, Argo CD is installed, and root app-of-apps has been applied.
 Argo CD should begin syncing child apps automatically.
-
+${PERSIST_MSG}
 URLs:
 - Argo CD:  https://argocd.localhost:8443
 - LLDAP UI: https://lldap.localhost:8443  (once Argo syncs it)
