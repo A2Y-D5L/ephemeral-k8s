@@ -69,6 +69,9 @@ kubectl -n kgateway-system create secret tls localhost-wildcard \
 log "Applying kgateway Gateway (edge)"
 kubectl apply -f "${ROOT}/manifests/edge-gateway.yaml" >/dev/null
 
+log "Waiting for Gateway to be programmed"
+kubectl -n kgateway-system wait --for=condition=Programmed gateway/edge --timeout=2m >/dev/null
+
 log "Installing Argo CD via Helm (Dex config lives in argocd-cm)"
 helm repo add argo https://argoproj.github.io/argo-helm >/dev/null
 helm repo update >/dev/null
