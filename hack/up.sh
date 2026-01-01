@@ -45,9 +45,9 @@ helm upgrade -i kgateway \
   --version "${KGATEWAY_VERSION}" >/dev/null
 
 log "Waiting for kgateway workloads"
-# Wait for Deployments/StatefulSets if present; then ensure pods are Ready.
-kubectl -n kgateway-system wait --for=condition=Available deploy --all --timeout=5m >/dev/null 2>&1 || true
-kubectl -n kgateway-system wait --for=condition=Ready pod --all --timeout=5m >/dev/null
+# Wait for Deployments to be Available (more robust than waiting for all pods,
+# which can fail if any Job pods exist in a Completed state).
+kubectl -n kgateway-system wait --for=condition=Available deploy --all --timeout=5m >/dev/null
 
 log "Ensuring namespaces"
 wait_ns argocd
@@ -81,7 +81,12 @@ helm upgrade -i argocd argo/argo-cd \
   -f "${ROOT}/helm/argocd-values.yaml" >/dev/null
 
 log "Waiting for Argo CD pods"
-kubectl -n argocd wait --for=condition=Ready pod --all --timeout=5m >/dev/null
+# Wait for Deployments and StatefulSets to be ready.
+# Note: We avoid `kubectl wait pod --all` because Helm hook Jobs (e.g.,
+# argocd-redis-secret-init) create pods that complete and are not "Ready",
+# causing the wait to fail.
+kubectl -n argocd wait --for=condition=Available deploy --all --timeout=5m >/dev/null
+kubectl -n argocd wait --for=jsonpath='{.status.readyReplicas}'=1 statefulset --all --timeout=5m >/dev/null
 
 log "Applying HTTPRoutes (Argo CD + app UIs)"
 kubectl apply -f "${ROOT}/manifests/routes.yaml" >/dev/null
