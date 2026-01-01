@@ -9,7 +9,7 @@ log "Starting kgateway port-forward (background)"
 
 log "Waiting for kgateway proxy deployment"
 DEPLOY=""
-for i in {1..30}; do
+for _ in {1..30}; do
   DEPLOY="$(kubectl -n kgateway-system get deploy \
     -l gateway.networking.k8s.io/gateway-name=edge \
     -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)" && [[ -n "${DEPLOY}" ]] && break
