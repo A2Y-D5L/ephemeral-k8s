@@ -157,6 +157,33 @@ This setup uses mkcert to generate a local development certificate for `*.localh
 
 If you don't want mkcert trust, you can still run it, but your browser will warn about TLS.
 
+### Browser trust setup (one-time)
+
+If your browser shows a security warning when visiting `https://argocd.localhost:8443` or `https://lldap.localhost:8443`, the mkcert root CA may not be fully trusted yet.
+
+**Install the mkcert CA (if not already done):**
+
+```bash
+mkcert -install
+```
+
+**After installing, restart your browser completely** (quit and reopen, not just close the window).
+
+**Safari-specific:** If Safari still shows warnings after restart:
+
+1. Open **Keychain Access** (search in Spotlight)
+2. Select **System** keychain in the sidebar
+3. Find the certificate named "mkcert \<your-username\>@..."
+4. Double-click it → expand **Trust** → set "When using this certificate" to **Always Trust**
+5. Close the dialog (you'll be prompted for your password)
+6. Restart Safari
+
+**Firefox-specific:** Firefox uses its own certificate store. Run `mkcert -install` again, or manually import the CA:
+
+1. Go to Firefox Settings → Privacy & Security → Certificates → View Certificates
+2. Import the CA from: `$(mkcert -CAROOT)/rootCA.pem`
+3. Check "Trust this CA to identify websites"
+
 ## Notes on Argo CD behind an edge proxy
 
 TLS is terminated at kgateway. Argo CD's server is configured to run "insecure" internally (HTTP behind the proxy). This is a common pattern for edge-terminated TLS in local/dev environments.
