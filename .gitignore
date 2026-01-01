@@ -13,6 +13,7 @@
 !LICENSE.*
 !NOTICE
 !NOTICE.*
+!.pre-commit-config.yaml
 
 # Allow key repo directories (and everything under them)
 !hack/

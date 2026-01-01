@@ -45,6 +45,13 @@ brew install kind kubectl helm mkcert yq jq
 mkcert -install
 ```
 
+(Optional) Set up pre-commit hooks for linting:
+
+```bash
+brew install pre-commit shellcheck
+pre-commit install
+```
+
 Configure the repo URL (required):
 
 - Edit `Makefile` and set:
