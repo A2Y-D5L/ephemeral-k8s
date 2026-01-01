@@ -12,12 +12,16 @@ CLUSTER_NAME ?= ephem
 # kgateway version (pinned for reproducibility; override if desired)
 KGATEWAY_VERSION ?= v2.1.2
 
+# Gateway API CRD version (pinned for reproducibility; override if desired)
+GATEWAY_API_VERSION ?= v1.4.0
+
 # ----------------------
 
 export GIT_REPO_URL
 export GIT_REVISION
 export CLUSTER_NAME
 export KGATEWAY_VERSION
+export GATEWAY_API_VERSION
 
 .PHONY: up down
 

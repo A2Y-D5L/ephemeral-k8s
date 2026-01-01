@@ -27,9 +27,6 @@
 !gitops/
 !gitops/**
 
-!.github/
-!.github/**
-
 # ------------------------------------------------------------------------------
 # Explicitly ignore local-only / sensitive / generated artifacts (even if under
 # whitelisted directories).

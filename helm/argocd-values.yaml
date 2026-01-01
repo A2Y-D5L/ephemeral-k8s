@@ -14,7 +14,10 @@ configs:
           host: lldap.lldap.svc.cluster.local:3890
           insecureNoSSL: true
 
-          # For ephemeral/dev only; adjust to your LLDAP directory shape.
+          # ==================================================================
+          # DEV-ONLY: These are intentionally weak credentials for local use.
+          # DO NOT use these values in production environments.
+          # ==================================================================
           bindDN: uid=admin,ou=people,dc=example,dc=com
           bindPW: adminpw
 

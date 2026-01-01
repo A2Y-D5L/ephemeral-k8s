@@ -1,12 +1,12 @@
 # ephemeral-k8s
 
-An opinionated, “one command” ephemeral Kubernetes playground for macOS (Docker Desktop) that boots a fresh local cluster and immediately starts syncing a GitOps app tree via Argo CD.
+An opinionated, "one command" ephemeral Kubernetes playground for macOS (Docker Desktop) that boots a fresh local cluster and immediately starts syncing a GitOps app tree via Argo CD.
 
 Core goals:
 
 - One command: `make up` creates everything needed for a clean local environment.
 - Fully disposable: `make down` deletes the entire cluster and local runtime state.
-- GitOps by default: once Argo CD is up, it bootstraps a root “app-of-apps” Application and auto-syncs child apps.
+- GitOps by default: once Argo CD is up, it bootstraps a root "app-of-apps" Application and auto-syncs child apps.
 - Modern edge: expose UIs/services through Gateway API using kgateway (Envoy Gateway).
 
 ## What gets installed
@@ -24,7 +24,7 @@ Edge / routing
 GitOps
 
 - Argo CD installed via the argo-helm chart
-- Root “app-of-apps” Application (auto-sync enabled) that discovers child `Application` manifests recursively
+- Root "app-of-apps" Application (auto-sync enabled) that discovers child `Application` manifests recursively
 - Child Applications (auto-sync enabled) that deploy real workloads from the repo
 
 Example workload
@@ -48,7 +48,7 @@ mkcert -install
 Configure the repo URL (required):
 
 - Edit `Makefile` and set:
-  - `GIT_REPO_URL` to your repo (e.g. <https://github.com/a27-d5l/ephemeral-k8s.git>)
+  - `GIT_REPO_URL` to your repo (e.g. <https://github.com/a2y-d5l/ephemeral-k8s.git>)
   - `GIT_REVISION` (e.g. main)
 
 Bring everything up:
@@ -81,7 +81,7 @@ The Argo CD initial admin password is printed at the end of `make up`.\
 This repo uses an app-of-apps pattern:
 
 1) `make up` installs Argo CD.
-2) `make up` applies a single “root” `Application` into the `argocd` namespace.
+2) `make up` applies a single "root" `Application` into the `argocd` namespace.
 3) The root Application points at `gitops/applications/` and uses directory recursion.
 4) Argo CD syncs the root Application automatically.
 5) The root Application creates/updates all child Applications under `gitops/applications/`.
@@ -89,11 +89,14 @@ This repo uses an app-of-apps pattern:
 
 **Directory layout:**
 
-- `gitops/root/`: template or rendered manifest for the root Application
-- `gitops/applications/`: one YAML per child Argo CD Application (the “catalog” of apps to deploy)
+- `gitops/applications/`: one YAML per child Argo CD Application (the "catalog" of apps to deploy)
 - `gitops/apps/<name>/`: the actual Kubernetes manifests (Kustomize bases/overlays are fine)
 
+> Note: The root Application is generated dynamically at bootstrap time (stored in `.state/root-app.yaml`) with your configured `GIT_REPO_URL` and `GIT_REVISION`.
+
 ## Adding a new app
+
+> **Important:** Child Applications must reference the same `repoURL` and `targetRevision` as your root Application. If you fork this repo, update `gitops/applications/*.yaml` to point to your fork.
 
 1) Create the manifests:
    - Add a folder: `gitops/apps/<your-app>/`
@@ -111,11 +114,11 @@ This repo uses an app-of-apps pattern:
 
 This setup uses mkcert to generate a local development certificate for `*.localhost` and configures kgateway to terminate TLS at the edge Gateway. Your browser should trust the certificate because mkcert installs a local CA into your macOS trust store.
 
-If you don’t want mkcert trust, you can still run it, but your browser will warn about TLS.
+If you don't want mkcert trust, you can still run it, but your browser will warn about TLS.
 
 ## Notes on Argo CD behind an edge proxy
 
-TLS is terminated at kgateway. Argo CD’s server is configured to run “insecure” internally (HTTP behind the proxy). This is a common pattern for edge-terminated TLS in local/dev environments.
+TLS is terminated at kgateway. Argo CD's server is configured to run "insecure" internally (HTTP behind the proxy). This is a common pattern for edge-terminated TLS in local/dev environments.
 
 ## Private vs public repo
 
@@ -128,7 +131,7 @@ If the repo is private:
 - You must provide Argo CD repo credentials during bootstrap.
 - The recommended approach is:
   - supply a read-only GitHub token (fine-grained PAT) via an environment variable at `make up` time, and
-  - have `hack/up.sh` create an Argo CD “repo-creds” Secret in the `argocd` namespace before applying the root Application.
+  - have `hack/up.sh` create an Argo CD "repo-creds" Secret in the `argocd` namespace before applying the root Application.
 
 This repo is intentionally structured so adding that step is straightforward.
 
@@ -139,7 +142,7 @@ This repo is intentionally structured so adding that step is straightforward.
   - Use branch protections and require PR reviews.
 
 - Do not commit real secrets:
-  - The included LLDAP/Dex credentials are intentionally “toy” values for local-only use.
+  - The included LLDAP/Dex credentials are intentionally "toy" values for local-only use. **Never use these in production.**
   - For anything real, generate secrets at runtime into `.state/` or use a secret manager.
 
 - Local artifacts are ignored by default:
@@ -155,7 +158,7 @@ This repo is intentionally structured so adding that step is straightforward.
    - Check:\
     `kubectl -n kgateway-system get pods`\
     `kubectl -n kgateway-system logs deploy/kgateway`
-3) Argo CD isn’t syncing apps:
+3) Argo CD isn't syncing apps:
    - Confirm `GIT_REPO_URL` and `GIT_REVISION` are correct.
    - Confirm the root Application exists:\
     `kubectl -n argocd get applications.argoproj.io`

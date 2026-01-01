@@ -6,6 +6,7 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/hack/util.sh"
 
 : "${CLUSTER_NAME:=ephem}"
 : "${KGATEWAY_VERSION:=v2.1.2}"
+: "${GATEWAY_API_VERSION:=v1.4.0}"
 : "${GIT_REPO_URL:=CHANGE_ME}"
 : "${GIT_REVISION:=main}"
 
@@ -28,8 +29,8 @@ kind delete cluster --name "${CLUSTER_NAME}" >/dev/null 2>&1 || true
 kind create cluster --name "${CLUSTER_NAME}" --config "${ROOT}/kind.yaml"
 kubectl config use-context "kind-${CLUSTER_NAME}" >/dev/null
 
-log "Installing Gateway API CRDs (v1.4.0 standard)"
-kubectl apply -f "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/standard-install.yaml" >/dev/null
+log "Installing Gateway API CRDs (${GATEWAY_API_VERSION} standard)"
+kubectl apply -f "https://github.com/kubernetes-sigs/gateway-api/releases/download/${GATEWAY_API_VERSION}/standard-install.yaml" >/dev/null
 
 log "Installing kgateway CRDs (Helm OCI) ${KGATEWAY_VERSION}"
 helm upgrade -i kgateway-crds \
@@ -50,7 +51,6 @@ kubectl -n kgateway-system wait --for=condition=Ready pod --all --timeout=5m >/d
 
 log "Ensuring namespaces"
 wait_ns argocd
-wait_ns lldap
 
 log "Generating local TLS cert (*.localhost) with mkcert"
 CERT_DIR="${STATE_DIR}/certs"

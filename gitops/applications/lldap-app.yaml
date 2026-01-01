@@ -6,6 +6,10 @@ metadata:
 spec:
   project: default
 
+  # ============================================================================
+  # NOTE: If you fork this repo, update repoURL and targetRevision to match
+  # your fork. These must be the same values you set in your Makefile.
+  # ============================================================================
   source:
     repoURL: https://github.com/a2y-d5l/ephemeral-k8s.git
     targetRevision: main

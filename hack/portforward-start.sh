@@ -18,6 +18,7 @@ done
 
 if [[ -z "${DEPLOY}" ]]; then
   echo "Could not find kgateway proxy deployment for Gateway 'edge'." >&2
+  echo "Expected label: gateway.networking.k8s.io/gateway-name=edge" >&2
   exit 1
 fi
 
@@ -29,3 +30,11 @@ nohup kubectl -n kgateway-system port-forward "deploy/${DEPLOY}" 8443:8443 >"${L
 echo $! >"${PF_PID_FILE}"
 
 log "Port-forward running (PID $(cat "${PF_PID_FILE}"))"
+
+# Give port-forward a moment to start, then verify it's working
+sleep 2
+if ! kill -0 "$(cat "${PF_PID_FILE}")" 2>/dev/null; then
+  log "Warning: port-forward process exited unexpectedly. Check ${LOG_FILE}"
+elif ! curl -ksf --connect-timeout 2 https://localhost:8443 >/dev/null 2>&1; then
+  log "Warning: port-forward may not be working (could not connect to https://localhost:8443)"
+fi
