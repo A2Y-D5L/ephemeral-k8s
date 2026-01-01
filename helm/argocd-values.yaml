@@ -19,7 +19,7 @@ configs:
           # DO NOT use these values in production environments.
           # ==================================================================
           bindDN: uid=admin,ou=people,dc=example,dc=com
-          bindPW: adminpw
+          bindPW: adminpwd
 
           usernamePrompt: Username
 
