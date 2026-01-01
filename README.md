@@ -1,4 +1,5 @@
 # ephemeral-k8s
+
 An opinionated, “one command” ephemeral Kubernetes playground for macOS (Docker Desktop) that boots a fresh local cluster and immediately starts syncing a GitOps app tree via Argo CD.
 
 Core goals:
